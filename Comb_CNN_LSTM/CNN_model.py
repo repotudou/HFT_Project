@@ -13,7 +13,7 @@ from tensorflow.python.ops import math_ops
 from tensorflow.contrib import layers as layers_lib
 
 
-def CNN_1(stock_name, x_batch, y_batch):
+def CNN_Model(stock_name, x_batch, y_batch):
 	time1 = time.time()
 	LR = .001
 	epsilonADAM = 1e-8
@@ -103,12 +103,10 @@ def CNN_1(stock_name, x_batch, y_batch):
 
 	session = tf.Session()
 
-	header = '/home/leifan/Dropbox/Boosting/'
-	path = header+ stock_name+'_1'
-	save_path = path+'/'+'save'
-	path = path+'/'
-	save_path = save_path+'/'
-
+	#restore saved models from a location
+	header = '/home/leifan/Dropbox/Saved_models/SingleCNN/'
+	path = header+ stock_name+'_1'+'/'+'save'
+	save_path = path+'/'
 	path_saver = save_path + "Test" + model_identifier + HP + ".ckpt"
 
 	#save model

@@ -8,9 +8,8 @@ import h5py
 import random
 import pandas as pd
 import pickle
-from CNN_1 import CNN_1
-from CNN_2 import CNN_2
-from CNN_3 import CNN_3
+from CNN_model import CNN_Model
+
 import tensorflow.contrib.slim as slim
 from tensorflow.python.ops import math_ops
 from tensorflow.contrib import layers as layers_lib
@@ -39,13 +38,14 @@ levels = 10
 
 
 folder = '/home/leifan/Data/1Y/20Stocks_LoadRNNdata_1/'
-# folder = '/home/leifan/Data/20Stocks_LoadRNNdata_1/'
-stock_file_name = 'AMD_loadRNN_1.hdf5'
 stock_name = 'AMD'
+stock_file_name = stock_name+'_loadRNN_1.hdf5'
 model_identifier = stock_name
 HDF5_file = h5py.File(folder + stock_file_name, 'r')
 X_np_eval = HDF5_file['X_test']
 Y_np_eval = HDF5_file['y_test']
+
+store_path = '/home/leifan/Result/Comb_CNN_LSTM/'
 
 
 cond_acc = np.zeros(epoch_limit)
@@ -70,38 +70,12 @@ for i in range(epoch_limit):
             kk =random_index_list[k]
             x_batch[k, :, :] = np.transpose(X_np_eval[t+kk :t+kk + time_lenght, :])
             y_batch[k] = Y_np_eval[t+kk + time_lenght-1]
-        actual_out, probs_1 = CNN_1('AMD', x_batch, y_batch)
-        actual_out, probs_2 = CNN_2('AMD', x_batch, y_batch)
-        actual_out, probs_3 = CNN_3('AMD', x_batch, y_batch)
-        probs_1[:, 1] = 0
-        probs_2[:, 1] = 0
-        probs_3[:, 1] = 0
-        pred_out_1 = [np.argmax(probs_1, 1)]
-        pred_out_1 = np.array(pred_out_1).reshape(-1)
-        pred_out_2 = [np.argmax(probs_2, 1)]
-        pred_out_2 = np.array(pred_out_2).reshape(-1)
-        pred_out_3 = [np.argmax(probs_3, 1)]
-        pred_out_3 = np.array(pred_out_3).reshape(-1)
-        pred_out = pred_out_1[:]
-        pred_out = np.array(pred_out).reshape(-1)
-        actual_out_1 = np.array(actual_out).reshape(-1)
-        temp1 = np.vstack((pred_out_1,pred_out_2))
-        temp2 = np.vstack((pred_out_3,pred_out))
-        temp = np.vstack((temp1, temp2))
-        temp = np.vstack((temp, actual_out_1))
-        temp = np.transpose(temp)
-        temp = pd.DataFrame(temp)
-        temp.to_csv('temp.csv')
+        actual_out, probs_1 = CNN_Model(stock_name, x_batch, y_batch)
+        #add LSTM model
 
-        for l in range(len(pred_out_1)):
-            if pred_out_1[l]==pred_out_2[l]:
-                pred_out[l] = pred_out_1[l]
-            else:
-                if pred_out_3[l]==pred_out_1[l]:
-                    pred_out[l] = pred_out_1[l]
-                else:
-                    pred_out[l] = pred_out_2[l]
-
+        probs = (probs_1+probs_2)/2.0
+        probs[:, 1] = 0
+        pred_out = [np.argmax(probs, 1)]
         pred_out = np.array(pred_out).reshape(-1)
         counter += 1
         Movements_predicted += sum([1 for p, j in zip(actual_out, pred_out) if p != 1 and (p == j)])
@@ -114,6 +88,6 @@ for i in range(epoch_limit):
     cond_acc[i] = conditional_accuracy
 
 cond_acc = pd.DataFrame(cond_acc)
-cond_acc.to_csv('cond_acc.csv')
+cond_acc.to_csv(store_path+stock_name'_cond_acc.csv')
 time2 = time.time()
 print(time2-time1)
