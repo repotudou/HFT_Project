@@ -7,9 +7,8 @@ import sys
 import h5py
 import random
 import pandas as pd
-import pickle
-from CNN_model import CNN_Model
-
+from MultiCNN_model import MultiCNN_Model
+from MultiLSTM_model import MultiLSTM_Model
 import tensorflow.contrib.slim as slim
 from tensorflow.python.ops import math_ops
 from tensorflow.contrib import layers as layers_lib
@@ -17,7 +16,7 @@ from tensorflow.contrib import layers as layers_lib
 time1 = time.time()
 LR = .001
 epsilonADAM = 1e-8
-time_lenght=80
+BPTT_length=80
 num_nodes = 1
 stock_num = 0
 num_levels = 10
@@ -62,14 +61,14 @@ for i in range(epoch_limit):
         random_index = random.randint(0,len(Y_np_eval)-T_eval-1)
         random_index_list.append(random_index)
     counter = 0
-    x_batch = np.float32(np.zeros((batches, num_inputs,time_lenght)))
+    x_batch = np.float32(np.zeros((batches, num_inputs,BPTT_length)))
     y_batch = np.int32(np.zeros((batches)))
     Movements_predicted = 0.0
     for t in range(0, T_eval, batches):
         for k in range(batches):
             kk =random_index_list[k]
-            x_batch[k, :, :] = np.transpose(X_np_eval[t+kk :t+kk + time_lenght, :])
-            y_batch[k] = Y_np_eval[t+kk + time_lenght-1]
+            x_batch[k, :, :] = np.transpose(X_np_eval[t+kk :t+kk + BPTT_length, :])
+            y_batch[k] = Y_np_eval[t+kk + BPTT_length-1]
         actual_out, probs_1 = CNN_Model(stock_name, x_batch, y_batch)
         #add LSTM model
 
