@@ -1,97 +1,123 @@
 import numpy as np
-import tensorflow as tf
-import time
-import copy
-import os
-import sys
-import h5py
-import random
 import pandas as pd
-from MultiCNN_model import MultiCNN_Model
-from MultiLSTM_model import MultiLSTM_Model
-import tensorflow.contrib.slim as slim
-from tensorflow.python.ops import math_ops
-from tensorflow.contrib import layers as layers_lib
+import tensorflow as tf  
+from MultiCNN_model import MultiCNN_Model, MultiCNN
+from load_data import _load_train_test_data, _trainAndtest_length
 
-time1 = time.time()
-LR = .001
-epsilonADAM = 1e-8
-BPTT_length=80
-num_nodes = 1
-stock_num = 0
+# from mpi4py import MPI
+import os
+import time
+
+#*********************************************
+# fixed variables    
+time_interval_1 = 1
+time_interval_01 = 0.1
+time_interval_ratio = int(time_interval_1/time_interval_01)
+num_classes = 3
 num_levels = 10
-num_inputs = num_levels*2+4
-num_stocks = 1
-batches = 500
-num_classes=3
+num_inputs = int(num_levels*2+4)
+num_per_day = 20000
+# Hyperparamaters
+num_layers = 2
+BPTT_length = 20
+batch_size = 1024
 cnn_filter_size=3
-pooling_filter_size=2
 num_filters_per_size=(64,128,256,512)
-# num_rep_block=(2,2,2,2) # how many layers in each block??
 num_rep_block=(1,1,1,1) 
-epoch_limit = 1
-keep_prob_train_1=0.95
-keep_prob_train_01=0.95
-T = 1000*batches
-T_eval = 100*batches
-levels = 10
-time_interval_ratio = 10
+pooling_filter_size=2
+LSTM_lasting_time = 20*BPTT_length
+train_dropout_1 = 0.8
+train_dropout_01 = 0.8
+test_dropout = 1.0
+learning_rate = 0.001
+beta1 = 0.9
+beta2 = 0.999
+epsilonADAM = 1e-8
+#*****************************************
+epoch_limit = 400
 
-
-folder = '/home/leifan/Data/1Y/20Stocks_LoadRNNdata_1/'
-stock_name = 'AMD'
-stock_file_name = stock_name+'_loadRNN_1.hdf5'
-model_identifier = stock_name
-
-HDF5_file = h5py.File(folder + stock_file_name, 'r')
-X_np_eval_1 = HDF5_file['X_test']
-Y_np_eval_1 = HDF5_file['y_test']
-
+stock_ticker = 'AMD'
+folder_1 = '/home/leifan/Data/1Y/20Stocks_LoadRNNdata_1/'
 folder_01 = '/home/leifan/Data/1Y/20Stocks_LoadRNNdata_01/'
-# folder = '/Users/leifan/Dropbox/VDCNN/'
-stock_file_name_01 = stock_name+'_loadRNN_01.hdf5'
-HDF5_file_01 = h5py.File(folder_01 + stock_file_name_01, 'r')
-X_np_eval_01 = HDF5_file_01['X_test']
-Y_np_eval_01 = HDF5_file_01['y_test']
+
+start_time = time.time()
+
+HDF5_file_LoadRNN_1 = _load_train_test_data(stock_ticker, time_interval_1, folder_1 = folder_1, folder_01 =folder_01)
+X_train_1 = HDF5_file_LoadRNN_1['X_train']
+X_test_1 = HDF5_file_LoadRNN_1['X_test']
+y_train_1 = HDF5_file_LoadRNN_1['y_train']
+y_test_1 = HDF5_file_LoadRNN_1['y_test']
+
+HDF5_file_LoadRNN_01 = _load_train_test_data(stock_ticker, time_interval_01, folder_1 = folder_1, folder_01 =folder_01)
+X_train_01 = HDF5_file_LoadRNN_01['X_train']
+X_test_01 = HDF5_file_LoadRNN_01['X_test']
+y_train_01 = HDF5_file_LoadRNN_01['y_train']
+y_test_01 = HDF5_file_LoadRNN_01['y_test']
+
+train_len_1, test_len_1 = _trainAndtest_length(stock_ticker, time_interval_1, folder_1 = folder_1, folder_01 =folder_01)
+train_len_01, test_len_01 = _trainAndtest_length(stock_ticker, time_interval_01, folder_1 = folder_1, folder_01 =folder_01)
+num_BPTT_iterations = int(LSTM_lasting_time/BPTT_length)
+train_num_of_days = int(train_len_1/num_per_day)
+test_num_of_days = int(test_len_1/num_per_day)
+
+
+#save path
+header = '/home/leifan/Result/Comb_CNN_LSTM/Comb/'
+# os.system('mkdir'+ ' '+header+stock_name+'_01')
+os.system('mkdir'+ ' '+header+stock_ticker+'_Dual')
+path = header+stock_ticker+'_Dual/'
 
 
 
-
-store_path = '/home/leifan/Result/Comb_CNN_LSTM/'
-
-
+#define savable values
+eval_error_tracker = []
+test_err = np.zeros(epoch_limit)
+test_acc = np.zeros(epoch_limit)
 cond_acc = np.zeros(epoch_limit)
 
-for i in range(epoch_limit):
-    print('epoch: %d' %(i+1))
 
-    # EVALUATION ERROR
-    current_eval_error = 0.0
-    current_eval_acc = 0.0
-    random_index_list = []
-    total_movements=0.0
-    for k in range(batches):
-        random_index = random.randint(0,len(Y_np_eval)-T_eval-1)
-        random_index_list.append(random_index)
+for ii in range(epoch_limit):
+    print('epoch: %d' %(ii+1))
+    #*****************************************************************************************************************               
+    # Testing 
+    current_test_error = 0.0
+    current_test_acc = 0.0
     counter = 0
-    x_train_batch_1 = np.float32(np.zeros((batches, num_inputs,BPTT_length)))
-    y_train_batch_1 = np.int64(np.zeros((batches)))
-    x_train_batch_01 = np.float32(np.zeros((batches, num_inputs,BPTT_length)))
-    y_train_batch_01 = np.int64(np.zeros((batches)))
+    # test_state_1 = sess.run(model.reset_state_1)
 
+    test_random_day = np.random.choice(test_num_of_days, batch_size)
+    test_random_day_index = test_random_day * num_per_day
+    test_random_start_time = np.random.choice(np.arange(0, num_per_day - LSTM_lasting_time), batch_size)
+    test_random_start_time_index = test_random_day_index + test_random_start_time
+
+
+    X_test_batch_1 = np.float32(np.zeros((batch_size,BPTT_length,num_inputs)))
+    y_test_batch_1 = np.int32(np.zeros(batch_size))
+    X_test_batch_01 = np.float32(np.zeros((batch_size,BPTT_length,num_inputs)))
+    y_test_batch_01 = np.int32(np.zeros(batch_size))
+
+    total_movements = 0
     Movements_predicted = 0.0
-    for t in range(0, T_eval, batches):
-        for k in range(batches):
-            kk =random_index_list[k]
-            x_test_batch_1[k, :, :] = np.transpose(X_np_eval_1[t+kk :t+kk + BPTT_length, :])
-            y_test_batch_1[k] = Y_np_eval_1[t+kk + BPTT_length-1]
-            end_idx_01 = (t+kk + BPTT_length-1)*time_interval_ratio
-            x_test_batch_01[k, :, :] = np.transpose(X_np_eval_01[end_idx_01-BPTT_length+1 :end_idx_01+1, :])
-            y_test_batch_01[k] = Y_np_eval_01[end_idx_01]
-        actual_out, probs_1 = CNN_Model(stock_name, x_test_batch_1, y_test_batch_1, x_test_batch_01, y_test_batch_01)
-        #add LSTM model
-        # probs = (probs_1+probs_2)/2.0
-        probs = probs_1
+    
+    for i in range(num_BPTT_iterations):
+        for k in range(batch_size):    
+            batch_k_start_index_1 = test_random_start_time_index[k]
+            batch_k_end_index_1 = batch_k_start_index_1 + BPTT_length 
+            
+            X_test_batch_1[k,:,:] = X_test_1[batch_k_start_index_1: batch_k_end_index_1,:]
+            y_test_batch_1[k] = y_test_1[batch_k_end_index_1-1]
+
+            batch_k_end_index_01 = (batch_k_end_index_1-1) * time_interval_ratio + 1
+            batch_k_start_index_01 = batch_k_end_index_01 - BPTT_length
+            
+            X_test_batch_01[k,:,:] = X_test_01[batch_k_start_index_01: batch_k_end_index_01,:]
+            y_test_batch_01[k] = y_test_01[batch_k_end_index_01-1]
+#$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ 
+        # test_state_01 = sess.run(model.reset_state_01)
+        actual_out, probs_1 = MultiCNN('AMD', X_test_batch_1, y_test_batch_1, X_test_batch_01, y_test_batch_01)
+#$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+        test_random_start_time_index = test_random_start_time_index + BPTT_length
+
         probs[:, 1] = 0
         pred_out = [np.argmax(probs, 1)]
         pred_out = np.array(pred_out).reshape(-1)
@@ -103,9 +129,11 @@ for i in range(epoch_limit):
     print(Movements_predicted, 'Movements_predicted correctly')
     print(total_movements, 'Total Movements')
     print(conditional_accuracy, 'Conditional Accuracy')
-    cond_acc[i] = conditional_accuracy
+    cond_acc[ii] = conditional_accuracy
+    # if (ii+1)%10 == 0:
+    #     saver.save(sess, path_saver)
 
 cond_acc = pd.DataFrame(cond_acc)
-cond_acc.to_csv(store_path+stock_name'_cond_acc.csv')
-time2 = time.time()
-print(time2-time1)
+cond_acc.to_csv(path+'cond_acc.csv')
+end_time = time.time()
+print(end_time-start_time)
