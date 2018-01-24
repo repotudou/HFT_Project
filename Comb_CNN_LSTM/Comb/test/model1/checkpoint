@@ -1,0 +1,2 @@
+model_checkpoint_path: "/Users/leifan/Dropbox/Comb/test/model1/model.ckpt"
+all_model_checkpoint_paths: "/Users/leifan/Dropbox/Comb/test/model1/model.ckpt"

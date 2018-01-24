@@ -1,0 +1,2 @@
+model_checkpoint_path: "/home/leifan/Result/Comb_CNN_LSTM/MultiLSTM/save/MultiLSTM.ckpt"
+all_model_checkpoint_paths: "/home/leifan/Result/Comb_CNN_LSTM/MultiLSTM/save/MultiLSTM.ckpt"
