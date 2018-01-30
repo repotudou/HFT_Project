@@ -46,7 +46,7 @@ epoch_limit = 100
 # stock_file_list = [ 'AMD','BIDU', 'RCL', 'CBS', 'D', 'SYMC', 'EMR', 'ENDP', 'UPS', 'HON', 'URBN', 'HRL', 'VFC', 'JNPR', 'VIAB', 'JWN', 'KMB']
 #stock_file_list = ['RCL','CBS']
 # stock_ticker = stock_file_list[rank]
-stock_ticker = 'AMD'
+stock_ticker = 'CBS'
 folder_1 = '/home/leifan/Data/1Y/20Stocks_LoadRNNdata_1/'
 folder_01 = '/home/leifan/Data/1Y/20Stocks_LoadRNNdata_01/'
 # folder_01 ='./'
@@ -89,7 +89,7 @@ model = Multi_LSTM_Model(config)
 sess = tf.Session()
 sess.run(model.init_op)
 saver = tf.train.Saver()
-file_path = '/home/leifan/Dropbox/Comb/testLSTM/AMD/'
+file_path = '/home/leifan/Dropbox/Comb/testLSTM/'+stock_ticker+'/'
 save_path = file_path+'save/'
 path_saver = save_path + "MultiLSTM.ckpt"
 
@@ -167,6 +167,6 @@ for ii in range(epoch_limit):
 
 
 cond_acc = pd.DataFrame(cond_acc)
-cond_acc.to_csv(file_path+'cond_acc.csv')
+cond_acc.to_csv(file_path+stock_ticker+'_LSTM_cond.csv')
 end_time = time.time()
 print(end_time-start_time)

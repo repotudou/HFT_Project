@@ -41,7 +41,7 @@ epoch_limit = 100
 
 #Data set
 #=============================================================================================
-stock_ticker = 'AMD'
+stock_ticker = 'CBS'
 folder_1 = '/home/leifan/Data/1Y/20Stocks_LoadRNNdata_1/'
 folder_01 = '/home/leifan/Data/1Y/20Stocks_LoadRNNdata_01/'
 # folder_01 ='./'
@@ -115,8 +115,10 @@ LSTM_saver = tf.train.Saver(MultiLSTM_vars)
 
 sess = tf.Session()
 
-CNN_Loc = "/home/leifan/Dropbox/Comb/comb/AMD_CNN/save/MultiCNN.ckpt"
-LSTM_Loc = "/home/leifan/Dropbox/Comb/comb/AMD_LSTM/save/MultiLSTM.ckpt"
+CNN_Loc = "/home/leifan/Dropbox/Comb/comb/"+stock_ticker+"_CNN/save/MultiCNN.ckpt"
+LSTM_Loc = "/home/leifan/Dropbox/Comb/comb/"+stock_ticker+"_LSTM/save/MultiLSTM.ckpt"
+
+file_saver = "/home/leifan/Dropbox/Comb/comb/Comb_result/"
 
 CNN_saver.restore(sess, CNN_Loc)
 LSTM_saver.restore(sess, LSTM_Loc)
@@ -197,6 +199,6 @@ for ii in range(epoch_limit):
 
 
 cond_acc = pd.DataFrame(cond_acc)
-cond_acc.to_csv('cond_acc.csv')
+cond_acc.to_csv(file_saver+stock_ticker+'_Comb_cond.csv')
 end_time = time.time()
 print(end_time-start_time)

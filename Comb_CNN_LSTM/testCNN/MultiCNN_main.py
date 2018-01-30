@@ -36,7 +36,7 @@ epsilonADAM = 1e-8
 #*****************************************
 epoch_limit = 100
 
-stock_ticker = 'AMD'
+stock_ticker = 'CBS'
 folder_1 = '/home/leifan/Data/1Y/20Stocks_LoadRNNdata_1/'
 folder_01 = '/home/leifan/Data/1Y/20Stocks_LoadRNNdata_01/'
 
@@ -157,6 +157,6 @@ for ii in range(epoch_limit):
     cond_acc[ii] = conditional_accuracy
 
 cond_acc = pd.DataFrame(cond_acc)
-cond_acc.to_csv(path+'cond_acc.csv')
+cond_acc.to_csv(path+stock_ticker+'_CNN_cond.csv')
 end_time = time.time()
 print(end_time-start_time)

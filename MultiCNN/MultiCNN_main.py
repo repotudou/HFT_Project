@@ -36,7 +36,7 @@ epsilonADAM = 1e-8
 #*****************************************
 epoch_limit = 1000
 
-stock_ticker = 'BIDU'
+stock_ticker = 'VIAB'
 folder_1 = '/home/leifan/Data/1Y/20Stocks_LoadRNNdata_1/'
 folder_01 = '/home/leifan/Data/1Y/20Stocks_LoadRNNdata_01/'
 
@@ -231,6 +231,6 @@ test_err.to_csv(path+'test_err.csv')
 test_acc = pd.DataFrame(test_acc)
 test_acc.to_csv(path+'test_acc.csv')
 cond_acc = pd.DataFrame(cond_acc)
-cond_acc.to_csv(path+ stock_ticker+'_CNN_cond.csv')
+cond_acc.to_csv(path+ 'cond_acc.csv')
 end_time = time.time()
 print(end_time-start_time)
