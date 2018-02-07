@@ -1,4 +1,4 @@
-# HFT_Project
+HFT_Project
 Apply different deep learning models to limit order book.
 
 1. SingleCNN: 
